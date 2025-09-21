@@ -1,4 +1,3 @@
-import { Link } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,11 +8,40 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { RouteVisualization } from "../components/RouteVisualization";
-import { GPSTrackingService } from "../services/GPSTrackingService";
-import { GPSTrackingState } from "../types/gps";
+import { RouteVisualization } from "../../components/RouteVisualization";
+import { GPSTrackingService } from "../../services/GPSTrackingService";
+import { GPSCoordinate, GPSTrackingState } from "../../types/gps";
 
-export default function GPSRecordingScreen() {
+// Helper function to calculate distance between two GPS coordinates
+const calculateDistance = (
+  coord1: GPSCoordinate,
+  coord2: GPSCoordinate
+): number => {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = ((coord2.latitude - coord1.latitude) * Math.PI) / 180;
+  const dLon = ((coord2.longitude - coord1.longitude) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((coord1.latitude * Math.PI) / 180) *
+      Math.cos((coord2.latitude * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in kilometers
+};
+
+// Calculate total route distance
+const calculateTotalDistance = (coordinates: GPSCoordinate[]): number => {
+  if (coordinates.length < 2) return 0;
+
+  let totalDistance = 0;
+  for (let i = 1; i < coordinates.length; i++) {
+    totalDistance += calculateDistance(coordinates[i - 1], coordinates[i]);
+  }
+  return totalDistance;
+};
+
+export default function GPSRecordingTab() {
   const [gpsTracker] = useState(() => GPSTrackingService.getInstance());
   const [trackingState, setTrackingState] = useState<GPSTrackingState>(
     gpsTracker.getTrackingState()
@@ -105,7 +133,7 @@ export default function GPSRecordingScreen() {
         <View style={styles.locationContainer}>
           <Text style={styles.locationTitle}>Waiting for GPS Data...</Text>
           <Text style={styles.locationSubtitle}>
-            Connect to a Bluetooth GPS device
+            Connect to a Bluetooth GPS device first
           </Text>
         </View>
       );
@@ -114,7 +142,11 @@ export default function GPSRecordingScreen() {
     const coord = trackingState.currentCoordinate;
     return (
       <View style={styles.locationContainer}>
-        <Text style={styles.locationTitle}>Current Location</Text>
+        <Text style={styles.locationTitle}>
+          {trackingState.isRecording
+            ? "🔴 Recording Route"
+            : "📍 Current Location"}
+        </Text>
         <Text style={styles.coordinate}>Lat: {coord.latitude.toFixed(6)}</Text>
         <Text style={styles.coordinate}>Lng: {coord.longitude.toFixed(6)}</Text>
         <Text style={styles.timestamp}>
@@ -122,6 +154,12 @@ export default function GPSRecordingScreen() {
         </Text>
         {coord.accuracy && (
           <Text style={styles.accuracy}>Accuracy: ±{coord.accuracy}m</Text>
+        )}
+        {trackingState.isRecording && trackingState.coordinates.length > 1 && (
+          <Text style={styles.routeInfo}>
+            📏 Route: {trackingState.coordinates.length} points •{" "}
+            {calculateTotalDistance(trackingState.coordinates).toFixed(2)} km
+          </Text>
         )}
       </View>
     );
@@ -133,9 +171,6 @@ export default function GPSRecordingScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>GPS Recording</Text>
-        <Link href="/" dismissTo style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>Close</Text>
-        </Link>
       </View>
 
       {renderCurrentLocation()}
@@ -170,6 +205,12 @@ export default function GPSRecordingScreen() {
           <Text style={styles.statsLabel}>Duration:</Text>
           <Text style={styles.statsValue}>
             {formatDuration(stats.duration)}
+          </Text>
+        </View>
+        <View style={styles.statsRow}>
+          <Text style={styles.statsLabel}>Distance:</Text>
+          <Text style={styles.statsValue}>
+            {calculateTotalDistance(trackingState.coordinates).toFixed(3)} km
           </Text>
         </View>
         {trackingState.startTime && (
@@ -207,7 +248,9 @@ export default function GPSRecordingScreen() {
           {isExporting ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.buttonText}>Export GeoJSON</Text>
+            <Text style={styles.buttonText}>
+              Export Route ({trackingState.coordinates.length} points)
+            </Text>
           )}
         </TouchableOpacity>
 
@@ -219,6 +262,17 @@ export default function GPSRecordingScreen() {
           <Text style={styles.buttonText}>Clear Data</Text>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.infoContainer}>
+        <Text style={styles.infoTitle}>How to Use:</Text>
+        <Text style={styles.infoText}>
+          1. Connect to a Bluetooth GPS device in the Bluetooth tab
+        </Text>
+        <Text style={styles.infoText}>
+          2. Start recording to begin collecting GPS coordinates
+        </Text>
+        <Text style={styles.infoText}>3. Export as GeoJSON file when done</Text>
+      </View>
     </ScrollView>
   );
 }
@@ -229,9 +283,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#121212",
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     padding: 20,
     paddingTop: 60,
     borderBottomWidth: 1,
@@ -241,13 +292,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 24,
     fontWeight: "bold",
-  },
-  closeButton: {
-    padding: 8,
-  },
-  closeButtonText: {
-    color: "#2196f3",
-    fontSize: 16,
+    textAlign: "center",
   },
   locationContainer: {
     backgroundColor: "#1e1e1e",
@@ -288,6 +333,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     marginTop: 5,
+  },
+  routeInfo: {
+    color: "#2196f3",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
+    fontWeight: "bold",
   },
   statsContainer: {
     backgroundColor: "#1e1e1e",
@@ -340,5 +392,23 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  infoContainer: {
+    backgroundColor: "#1e1e1e",
+    margin: 20,
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 40,
+  },
+  infoTitle: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  infoText: {
+    color: "#888",
+    fontSize: 14,
+    marginBottom: 5,
   },
 });
