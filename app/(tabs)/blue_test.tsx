@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { BleManager, Device, State } from "react-native-ble-plx";
+import { IconSymbol } from "../../components/ui/icon-symbol";
 import { GPSTrackingService } from "../../services/GPSTrackingService";
 import { GPSCoordinate, parseGPSData } from "../../types/gps";
 
@@ -216,64 +217,107 @@ export default function BluetoothScanner() {
 
   return (
     <View style={styles.container}>
-      <Button
-        title={isScanning ? "Scanning..." : "Scan for Devices"}
-        onPress={startScan}
-        disabled={isScanning}
-      />
-      {error && <Text style={styles.errorText}>Error: {error}</Text>}
-
-      {/* GPS Display Section */}
-      {currentGPS && (
-        <View style={styles.gpsContainer}>
-          <Text style={styles.gpsTitle}>Current GPS Location</Text>
-          <Text style={styles.gpsCoordinate}>
-            Latitude: {currentGPS.latitude.toFixed(6)}
-          </Text>
-          <Text style={styles.gpsCoordinate}>
-            Longitude: {currentGPS.longitude.toFixed(6)}
-          </Text>
-          <Text style={styles.gpsTimestamp}>
-            {currentGPS.timestamp.toLocaleTimeString()}
-          </Text>
-          {currentGPS.accuracy && (
-            <Text style={styles.gpsAccuracy}>
-              Accuracy: ±{currentGPS.accuracy}m
-            </Text>
-          )}
-          {isRecording && (
-            <Text style={styles.recordingStatus}>
-              🔴 Recording Route • {recordedPoints} points collected
-            </Text>
-          )}
-        </View>
-      )}
-
-      {/* Recording Button */}
-      {connectedDevice && (
+      <View style={styles.header}>
         <TouchableOpacity
-          style={styles.recordingButton}
-          onPress={navigateToRecording}
+          style={styles.backButton}
+          onPress={() => router.push("/")}
         >
-          <Text style={styles.recordingButtonText}>
-            {isRecording ? "📍 View Recording" : "🔴 Start GPS Recording"}
-          </Text>
+          <IconSymbol name="chevron.left" size={24} color="#fff" />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-      )}
+        <Text style={styles.title}>Bluetooth Connection</Text>
+      </View>
 
-      <FlatList
-        data={devices}
-        keyExtractor={(item) => item.id}
-        renderItem={renderDevice}
-        style={{ marginTop: 10 }}
-      />
+      <View style={styles.content}>
+        <Button
+          title={isScanning ? "Scanning..." : "Scan for Devices"}
+          onPress={startScan}
+          disabled={isScanning}
+        />
+        {error && <Text style={styles.errorText}>Error: {error}</Text>}
+
+        {/* GPS Display Section */}
+        {currentGPS && (
+          <View style={styles.gpsContainer}>
+            <Text style={styles.gpsTitle}>Current GPS Location</Text>
+            <Text style={styles.gpsCoordinate}>
+              Latitude: {currentGPS.latitude.toFixed(6)}
+            </Text>
+            <Text style={styles.gpsCoordinate}>
+              Longitude: {currentGPS.longitude.toFixed(6)}
+            </Text>
+            <Text style={styles.gpsTimestamp}>
+              {currentGPS.timestamp.toLocaleTimeString()}
+            </Text>
+            {currentGPS.accuracy && (
+              <Text style={styles.gpsAccuracy}>
+                Accuracy: ±{currentGPS.accuracy}m
+              </Text>
+            )}
+            {isRecording && (
+              <Text style={styles.recordingStatus}>
+                🔴 Recording Route • {recordedPoints} points collected
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* Recording Button */}
+        {connectedDevice && (
+          <TouchableOpacity
+            style={styles.recordingButton}
+            onPress={navigateToRecording}
+          >
+            <Text style={styles.recordingButtonText}>
+              {isRecording ? "📍 View Recording" : "🔴 Start GPS Recording"}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <FlatList
+          data={devices}
+          keyExtractor={(item) => item.id}
+          renderItem={renderDevice}
+          style={{ marginTop: 10 }}
+        />
+      </View>
     </View>
   );
 }
 
 // Basic styling
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#121212" },
+  container: { flex: 1, backgroundColor: "#121212" },
+  header: {
+    padding: 20,
+    paddingTop: 60,
+    borderBottomWidth: 1,
+    borderBottomColor: "#444",
+    position: "relative",
+  },
+  backButton: {
+    position: "absolute",
+    left: 20,
+    top: 65,
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  backButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    marginLeft: 5,
+  },
+  title: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
   deviceContainer: { padding: 10, borderBottomWidth: 1, borderColor: "#444" },
   deviceText: { color: "#fff", marginBottom: 5 },
   dataText: {

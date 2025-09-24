@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { RouteVisualization } from "../../components/RouteVisualization";
+import { IconSymbol } from "../../components/ui/icon-symbol";
 import { GPSTrackingService } from "../../services/GPSTrackingService";
 import { GPSCoordinate, GPSTrackingState } from "../../types/gps";
 
@@ -170,7 +172,14 @@ export default function GPSRecordingTab() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>GPS Recording</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.push("/")}
+        >
+          <IconSymbol name="chevron.left" size={24} color="#fff" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Record Route</Text>
       </View>
 
       {renderCurrentLocation()}
@@ -287,6 +296,20 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     borderBottomWidth: 1,
     borderBottomColor: "#444",
+    position: "relative",
+  },
+  backButton: {
+    position: "absolute",
+    left: 20,
+    top: 65,
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  backButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    marginLeft: 5,
   },
   title: {
     color: "#fff",
