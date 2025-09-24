@@ -9,11 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { OfflineActivityDropdown } from "../../components/OfflineActivityDropdown";
 import { RouteVisualization } from "../../components/RouteVisualization";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { useAuth } from "../../contexts/AuthContext";
 import { GPSTrackingService } from "../../services/GPSTrackingService";
 import { GPSCoordinate, GPSTrackingState } from "../../types/gps";
+import { OfflineActivity } from "../../types/offline-activity";
 
 // Helper function to calculate distance between two GPS coordinates
 const calculateDistance = (
@@ -50,6 +52,8 @@ export default function GPSRecordingTab() {
     gpsTracker.getTrackingState()
   );
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedActivity, setSelectedActivity] =
+    useState<OfflineActivity | null>(null);
   const { logout } = useAuth();
 
   useEffect(() => {
@@ -79,15 +83,30 @@ export default function GPSRecordingTab() {
   };
 
   const handleStartRecording = () => {
-    gpsTracker.startTracking("Bluetooth GPS Device");
-    Alert.alert("Recording Started", "GPS coordinates will now be recorded.");
+    if (!selectedActivity) {
+      Alert.alert(
+        "Select Activity",
+        "Please select an offline activity before starting the recording.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    gpsTracker.startTracking(`Recording for: ${selectedActivity.name}`);
+    Alert.alert(
+      "Recording Started",
+      `GPS coordinates will now be recorded for "${selectedActivity.name}".`
+    );
   };
 
   const handleStopRecording = () => {
     gpsTracker.stopTracking();
+    const activityName = selectedActivity
+      ? selectedActivity.name
+      : "Unknown Activity";
     Alert.alert(
       "Recording Stopped",
-      `Total points recorded: ${trackingState.totalPoints}`
+      `Route recording for "${activityName}" completed.\nTotal points recorded: ${trackingState.totalPoints}`
     );
   };
 
@@ -99,10 +118,13 @@ export default function GPSRecordingTab() {
 
     setIsExporting(true);
     try {
-      await gpsTracker.exportAndShare("Bluetooth GPS Device");
+      const activityName = selectedActivity
+        ? selectedActivity.name
+        : "Unknown Activity";
+      await gpsTracker.exportAndShare(activityName);
       Alert.alert(
         "Export Successful",
-        "GeoJSON file has been exported and shared."
+        `Route data for "${activityName}" has been exported and shared as GeoJSON.`
       );
     } catch (error) {
       Alert.alert(
@@ -210,6 +232,35 @@ export default function GPSRecordingTab() {
       </View>
 
       {renderCurrentLocation()}
+
+      {/* Offline Activity Selection */}
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Select Offline Activity</Text>
+        <Text style={styles.sectionSubtitle}>
+          Choose the activity you're recording the route for
+        </Text>
+        <OfflineActivityDropdown
+          selectedActivity={selectedActivity}
+          onActivitySelect={setSelectedActivity}
+          placeholder="Select an offline activity to record route for"
+          style={styles.activityDropdown}
+        />
+        {selectedActivity && (
+          <View style={styles.selectedActivityInfo}>
+            <Text style={styles.selectedActivityTitle}>Selected Activity:</Text>
+            <Text style={styles.selectedActivityName}>
+              {selectedActivity.name}
+            </Text>
+            <Text style={styles.selectedActivityLocation}>
+              📍 {selectedActivity.city}, {selectedActivity.state}
+            </Text>
+            <Text style={styles.selectedActivityDifficulty}>
+              🏔️ {selectedActivity.difficulty_level.toUpperCase()} •{" "}
+              {selectedActivity.duration} day(s) • {selectedActivity.altitude}m
+            </Text>
+          </View>
+        )}
+      </View>
 
       {/* Route Visualization */}
       {trackingState.coordinates.length > 0 && (
@@ -467,5 +518,50 @@ const styles = StyleSheet.create({
     color: "#888",
     fontSize: 14,
     marginBottom: 5,
+  },
+  content: {
+    padding: 20,
+  },
+  sectionTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  sectionSubtitle: {
+    color: "#888",
+    fontSize: 14,
+    marginBottom: 15,
+  },
+  activityDropdown: {
+    marginBottom: 15,
+  },
+  selectedActivityInfo: {
+    backgroundColor: "#1e1e1e",
+    padding: 15,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4caf50",
+  },
+  selectedActivityTitle: {
+    color: "#4caf50",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  selectedActivityName: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  selectedActivityLocation: {
+    color: "#888",
+    fontSize: 14,
+    marginBottom: 3,
+  },
+  selectedActivityDifficulty: {
+    color: "#888",
+    fontSize: 14,
   },
 });
