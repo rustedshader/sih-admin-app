@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { RouteVisualization } from "../../components/RouteVisualization";
 import { IconSymbol } from "../../components/ui/icon-symbol";
+import { useAuth } from "../../contexts/AuthContext";
 import { GPSTrackingService } from "../../services/GPSTrackingService";
 import { GPSCoordinate, GPSTrackingState } from "../../types/gps";
 
@@ -49,6 +50,7 @@ export default function GPSRecordingTab() {
     gpsTracker.getTrackingState()
   );
   const [isExporting, setIsExporting] = useState(false);
+  const { logout } = useAuth();
 
   useEffect(() => {
     const unsubscribe = gpsTracker.subscribe((state) => {
@@ -57,6 +59,24 @@ export default function GPSRecordingTab() {
 
     return unsubscribe;
   }, [gpsTracker]);
+
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await logout();
+            router.replace("/auth/login");
+          } catch (error) {
+            console.error("Logout error:", error);
+          }
+        },
+      },
+    ]);
+  };
 
   const handleStartRecording = () => {
     gpsTracker.startTracking("Bluetooth GPS Device");
@@ -180,6 +200,13 @@ export default function GPSRecordingTab() {
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Record Route</Text>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <IconSymbol
+            name="rectangle.portrait.and.arrow.right"
+            size={20}
+            color="#fff"
+          />
+        </TouchableOpacity>
       </View>
 
       {renderCurrentLocation()}
@@ -316,6 +343,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
+  },
+  logoutButton: {
+    position: "absolute",
+    right: 20,
+    top: 65,
+    padding: 8,
+    zIndex: 1,
   },
   locationContainer: {
     backgroundColor: "#1e1e1e",

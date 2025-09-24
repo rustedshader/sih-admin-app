@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { BleManager, Device, State } from "react-native-ble-plx";
 import { IconSymbol } from "../../components/ui/icon-symbol";
+import { useAuth } from "../../contexts/AuthContext";
 import { GPSTrackingService } from "../../services/GPSTrackingService";
 import { GPSCoordinate, parseGPSData } from "../../types/gps";
 
@@ -41,6 +42,25 @@ export default function BluetoothScanner() {
   const [gpsTracker] = useState(() => GPSTrackingService.getInstance());
   const [isRecording, setIsRecording] = useState(false);
   const [recordedPoints, setRecordedPoints] = useState(0);
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await logout();
+            router.replace("/auth/login");
+          } catch (error) {
+            console.error("Logout error:", error);
+          }
+        },
+      },
+    ]);
+  };
 
   useEffect(() => {
     // Initialize BLE Manager and handle permissions
@@ -226,6 +246,13 @@ export default function BluetoothScanner() {
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Bluetooth Connection</Text>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <IconSymbol
+            name="rectangle.portrait.and.arrow.right"
+            size={24}
+            color="#fff"
+          />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
@@ -307,6 +334,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     marginLeft: 5,
+  },
+  logoutButton: {
+    position: "absolute",
+    right: 20,
+    top: 65,
+    zIndex: 1,
   },
   title: {
     color: "#fff",
