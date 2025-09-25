@@ -274,9 +274,13 @@ export class HybridGPSService {
     if (!this.isTracking || !this.lastGPSFix || !this.onCoordinateUpdate)
       return;
 
-    // Only interpolate if we haven't received a GPS fix recently
+    // Always generate interpolated positions when we have a GPS fix
+    // The whole point is to fill in the gaps between GPS fixes
     const timeSinceLastFix = Date.now() - this.lastFixTimestamp;
-    if (timeSinceLastFix < this.interpolationRate * 0.8) return; // Wait at least 80% of interval
+
+    // Only skip if we just received a GPS fix (within the last 500ms)
+    // This prevents double-counting the actual GPS fix
+    if (timeSinceLastFix < 500) return;
 
     // Convert relative position to GPS coordinates
     const metersPerDegreeLat = 111000;

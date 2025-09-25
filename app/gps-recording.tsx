@@ -249,7 +249,7 @@ export default function GPSRecordingScreen() {
           onCoordinateUpdate: (coordinate) => {
             setHybridCoordinates((prev) => [...prev, coordinate]);
           },
-          interpolationRate: 1000, // 1 second interpolation
+          interpolationRate: 500, // 0.5 second interpolation for more points
         });
 
         Alert.alert(
@@ -265,7 +265,7 @@ export default function GPSRecordingScreen() {
           onCoordinateUpdate: (coordinate) => {
             setHybridCoordinates((prev) => [...prev, coordinate]);
           },
-          interpolationRate: 1000, // 1 second interpolation
+          interpolationRate: 500, // 0.5 second interpolation for more points
         });
 
         // Subscribe to Bluetooth GPS fixes and feed them to hybrid service
