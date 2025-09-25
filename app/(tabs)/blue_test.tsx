@@ -205,7 +205,7 @@ export default function BluetoothScanner() {
       );
       return;
     }
-    router.push("/(tabs)/gps_recording");
+    router.push("/gps-recording");
   };
 
   const renderDevice = ({ item }: { item: BluetoothDevice }) => (
@@ -240,12 +240,11 @@ export default function BluetoothScanner() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.push("/")}
+          onPress={() => router.back()}
         >
           <IconSymbol name="chevron.left" size={24} color="#fff" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Bluetooth Connection</Text>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <IconSymbol
             name="rectangle.portrait.and.arrow.right"
@@ -321,31 +320,40 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#444",
     position: "relative",
+    minHeight: 100,
+  },
+  headerButtons: {
+    position: "absolute",
+    right: 20,
+    top: 65,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 15,
+    zIndex: 1,
   },
   backButton: {
     position: "absolute",
     left: 20,
-    top: 65,
+    top: 62,
     flexDirection: "row",
     alignItems: "center",
     zIndex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   backButtonText: {
     color: "#fff",
     fontSize: 16,
     marginLeft: 5,
+    fontWeight: "500",
   },
   logoutButton: {
     position: "absolute",
     right: 20,
-    top: 65,
+    top: 62,
     zIndex: 1,
-  },
-  title: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   content: {
     flex: 1,

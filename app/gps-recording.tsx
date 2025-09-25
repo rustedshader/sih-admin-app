@@ -517,31 +517,14 @@ export default function GPSRecordingScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol name="chevron.left" size={24} color="#fff" />
-          <Text style={styles.backButtonText}>Back</Text>
+      <View style={styles.headerButtons}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <IconSymbol
+            name="rectangle.portrait.and.arrow.right"
+            size={20}
+            color="#fff"
+          />
         </TouchableOpacity>
-        <Text style={styles.title}>GPS Route Recording</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={styles.savedRoutesButton}
-            onPress={() => router.push("/saved-routes")}
-          >
-            <IconSymbol name="folder" size={18} color="#4caf50" />
-            <Text style={styles.savedRoutesButtonText}>Routes</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <IconSymbol
-              name="rectangle.portrait.and.arrow.right"
-              size={20}
-              color="#fff"
-            />
-          </TouchableOpacity>
-        </View>
       </View>
 
       {renderCurrentLocation()}
@@ -753,26 +736,6 @@ export default function GPSRecordingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#121212" },
-  header: {
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: "#444",
-    position: "relative",
-  },
-  backButton: {
-    position: "absolute",
-    left: 20,
-    top: 65,
-    flexDirection: "row",
-    alignItems: "center",
-    zIndex: 1,
-  },
-  backButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    marginLeft: 5,
-  },
   logoutButton: {
     position: "absolute",
     right: 20,
@@ -787,28 +750,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 15,
     zIndex: 1,
-  },
-  savedRoutesButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1e3a1e",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#4caf50",
-  },
-  savedRoutesButtonText: {
-    color: "#4caf50",
-    fontSize: 12,
-    fontWeight: "600",
-    marginLeft: 4,
-  },
-  title: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
   },
   locationContainer: {
     backgroundColor: "#1e1e1e",

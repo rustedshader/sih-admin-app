@@ -1,10 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { File, Paths } from "expo-file-system";
 import { router } from "expo-router";
+import * as Sharing from "expo-sharing";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
-  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -86,18 +87,22 @@ export default function SavedRoutesScreen() {
         ],
       };
 
-      const geoJsonString = JSON.stringify(geoJson, null, 2);
       const fileName = `${route.activityName.replace(/[^a-zA-Z0-9]/g, "_")}_${
         route.id
       }.geojson`;
+      const file = new File(Paths.document, fileName);
 
-      await Share.share({
-        message: geoJsonString,
-        title: `Route: ${route.activityName}`,
-        url: `data:application/json;charset=utf-8,${encodeURIComponent(
-          geoJsonString
-        )}`,
+      await file.write(JSON.stringify(geoJson, null, 2));
+
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "application/geo+json",
+        dialogTitle: `Share Route: ${route.activityName}`,
       });
+
+      Alert.alert(
+        "Export Successful",
+        `Route exported successfully as ${fileName}`
+      );
     } catch (error) {
       console.error("Failed to share route:", error);
       Alert.alert("Error", "Failed to share route");
@@ -185,22 +190,14 @@ export default function SavedRoutesScreen() {
         onPress={() => shareRouteAsGeoJSON(route)}
       >
         <IconSymbol name="square.and.arrow.up" size={16} color="#4caf50" />
-        <Text style={styles.shareButtonText}>Share GeoJSON</Text>
+        <Text style={styles.shareButtonText}>Export & Share</Text>
       </TouchableOpacity>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol name="chevron.left" size={24} color="#fff" />
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Saved Routes</Text>
+      <View style={styles.headerButtons}>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <IconSymbol
             name="rectangle.portrait.and.arrow.right"
@@ -253,30 +250,20 @@ const styles = StyleSheet.create({
     borderBottomColor: "#444",
     position: "relative",
   },
-  backButton: {
+  headerButtons: {
     position: "absolute",
-    left: 20,
+    right: 20,
     top: 65,
     flexDirection: "row",
     alignItems: "center",
+    gap: 15,
     zIndex: 1,
-  },
-  backButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    marginLeft: 5,
   },
   logoutButton: {
     position: "absolute",
     right: 20,
     top: 65,
     zIndex: 1,
-  },
-  title: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
   },
   loadingContainer: {
     flex: 1,

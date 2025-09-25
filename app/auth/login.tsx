@@ -68,7 +68,7 @@ export default function LoginScreen() {
               SURAKSHIT
             </Text>
             <Text style={[styles.subtitle, { color: colors.text }]}>
-              Admin Portal
+              Admin App
             </Text>
 
             {/* Login Form */}

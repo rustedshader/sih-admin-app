@@ -93,12 +93,27 @@ export default function HomePage() {
         {/* App Title */}
         <Text style={[styles.appTitle, { color: colors.text }]}>SURAKSHIT</Text>
 
-        <Text style={[styles.subtitle, { color: colors.text }]}>
-          Admin Portal
-        </Text>
+        <Text style={[styles.subtitle, { color: colors.text }]}>Admin App</Text>
 
         {/* Navigation Buttons */}
         <View style={styles.buttonContainer}>
+          <Link href="/saved-routes" asChild>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.tint }]}
+            >
+              <IconSymbol
+                name="folder.fill"
+                size={32}
+                color="white"
+                style={styles.buttonIcon}
+              />
+              <Text style={styles.buttonText}>Saved Routes</Text>
+              <Text style={styles.buttonSubtext}>
+                View and share recorded routes
+              </Text>
+            </TouchableOpacity>
+          </Link>
+
           <Link href="/(tabs)/blue_test" asChild>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: colors.tint }]}
@@ -110,11 +125,13 @@ export default function HomePage() {
                 style={styles.buttonIcon}
               />
               <Text style={styles.buttonText}>Connect Bluetooth</Text>
-              <Text style={styles.buttonSubtext}>Pair with safety devices</Text>
+              <Text style={styles.buttonSubtext}>
+                Pair with recording devices
+              </Text>
             </TouchableOpacity>
           </Link>
 
-          <Link href="/(tabs)/gps_recording" asChild>
+          <Link href="/gps-recording" asChild>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: colors.tint }]}
             >
