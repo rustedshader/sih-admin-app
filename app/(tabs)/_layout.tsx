@@ -25,15 +25,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="gps_recording"
-        options={{
-          title: "GPS Recording",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="location.fill" color={color} />
-          ),
-        }}
-      />
     </Tabs>
   );
 }

@@ -127,7 +127,22 @@ export default function BluetoothScanner() {
         });
       }
     });
-    setTimeout(() => manager?.stopDeviceScan(), 10000);
+    // Remove the automatic timeout to allow manual control
+  };
+
+  const stopScan = () => {
+    if (manager) {
+      manager.stopDeviceScan();
+      setIsScanning(false);
+    }
+  };
+
+  const toggleScan = () => {
+    if (isScanning) {
+      stopScan();
+    } else {
+      startScan();
+    }
   };
 
   const connectToDevice = async (device: BluetoothDevice) => {
@@ -141,40 +156,60 @@ export default function BluetoothScanner() {
 
       await connected.discoverAllServicesAndCharacteristics();
 
-      // Start monitoring the characteristic for notifications
-      const subscription = manager.monitorCharacteristicForDevice(
-        device.id,
-        SERVICE_UUID,
-        CHARACTERISTIC_UUID,
-        (error, characteristic) => {
-          if (error) {
-            console.error("Bluetooth monitoring error:", error);
-            setError(`Monitoring error: ${error.message}`);
-            return;
-          }
-          try {
-            // Decode the received value (it's Base64)
-            const decodedData = base64.decode(characteristic?.value || "");
-            console.log("Received data:", decodedData);
-            setEspData(decodedData);
-
-            // Parse GPS data and update current coordinates
-            const gpsCoord = parseGPSData(decodedData);
-            if (gpsCoord) {
-              setCurrentGPS(gpsCoord);
-              // Add to GPS tracker if recording
-              gpsTracker.addCoordinate(gpsCoord);
+      // Check if the device has the GPS service and characteristic
+      try {
+        // Try to start monitoring the characteristic for notifications
+        const subscription = manager.monitorCharacteristicForDevice(
+          device.id,
+          SERVICE_UUID,
+          CHARACTERISTIC_UUID,
+          (error, characteristic) => {
+            if (error) {
+              console.error("Bluetooth monitoring error:", error);
+              // Don't set error state for monitoring errors as device might not support GPS
+              if (error.message && !error.message.includes("Unknown error")) {
+                setError(
+                  `This device may not support GPS data: ${error.message}`
+                );
+              }
+              return;
             }
-          } catch (decodeError) {
-            console.error("Error processing GPS data:", decodeError);
-          }
-        }
-      );
+            try {
+              // Decode the received value (it's Base64)
+              const decodedData = base64.decode(characteristic?.value || "");
+              console.log("Received data:", decodedData);
+              setEspData(decodedData);
 
-      // Store subscription for cleanup
-      (connected as any)._gpsSubscription = subscription;
+              // Parse GPS data and update current coordinates
+              const gpsCoord = parseGPSData(decodedData);
+              if (gpsCoord) {
+                setCurrentGPS(gpsCoord);
+                // Add to GPS tracker if recording
+                gpsTracker.addCoordinate(gpsCoord);
+              }
+            } catch (decodeError) {
+              console.error("Error processing GPS data:", decodeError);
+              // Only log decode errors, don't show them to user
+            }
+          }
+        );
+
+        // Store subscription for cleanup
+        (connected as any)._gpsSubscription = subscription;
+      } catch (serviceError) {
+        // Device doesn't support GPS service - that's okay, just inform user
+        console.log("Device doesn't support GPS service:", serviceError);
+        setError(
+          "Connected successfully, but this device doesn't appear to support GPS data transmission."
+        );
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to connect and subscribe");
+      console.error("Connection error:", err);
+      setError(
+        `Failed to connect: ${err.message || "Unknown connection error"}`
+      );
+      // Clean up on connection failure
+      setConnectedDevice(null);
     }
   };
 
@@ -183,7 +218,12 @@ export default function BluetoothScanner() {
     try {
       // Clean up GPS subscription first
       if ((connectedDevice as any)._gpsSubscription) {
-        (connectedDevice as any)._gpsSubscription.remove();
+        try {
+          (connectedDevice as any)._gpsSubscription.remove();
+        } catch (subError) {
+          console.log("Error removing subscription:", subError);
+          // Continue with disconnect even if subscription cleanup fails
+        }
       }
 
       await manager.cancelDeviceConnection(connectedDevice.id);
@@ -193,7 +233,11 @@ export default function BluetoothScanner() {
       setError(null); // Clear any previous errors
     } catch (err: any) {
       console.error("Disconnect error:", err);
-      setError("Failed to disconnect: " + err.message);
+      // Still clear the connection state even if disconnect fails
+      setConnectedDevice(null);
+      setEspData(null);
+      setCurrentGPS(null);
+      setError("Disconnected (with some errors)");
     }
   };
 
@@ -256,9 +300,9 @@ export default function BluetoothScanner() {
 
       <View style={styles.content}>
         <Button
-          title={isScanning ? "Scanning..." : "Scan for Devices"}
-          onPress={startScan}
-          disabled={isScanning}
+          title={isScanning ? "Stop Scanning" : "Scan for Devices"}
+          onPress={toggleScan}
+          disabled={false}
         />
         {error && <Text style={styles.errorText}>Error: {error}</Text>}
 
