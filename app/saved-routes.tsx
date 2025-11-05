@@ -10,14 +10,18 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { IconSymbol } from "../components/ui/icon-symbol";
 import { useAuth } from "../contexts/AuthContext";
+import RouteService from "../services/RouteService";
 import { SavedRoute } from "../types/saved-route";
 
 export default function SavedRoutesScreen() {
   const [routes, setRoutes] = useState<SavedRoute[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploadingRouteId, setUploadingRouteId] = useState<string | null>(null);
+  const [routeService] = useState(() => RouteService.getInstance());
   const { logout } = useAuth();
 
   useEffect(() => {
@@ -138,6 +142,77 @@ export default function SavedRoutesScreen() {
     );
   };
 
+  const uploadRouteToBackend = async (route: SavedRoute) => {
+    if (!route.activityId) {
+      Alert.alert(
+        "Cannot Upload",
+        "This route is missing the activity ID. Please record a new route with an activity selected.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    if (route.uploadedToBackend) {
+      Alert.alert(
+        "Already Uploaded",
+        "This route has already been uploaded to the backend.",
+        [
+          { text: "OK" },
+          {
+            text: "Upload Again",
+            onPress: () => performUpload(route),
+          },
+        ]
+      );
+      return;
+    }
+
+    performUpload(route);
+  };
+
+  const performUpload = async (route: SavedRoute) => {
+    setUploadingRouteId(route.id);
+    try {
+      const result = await routeService.uploadRoute(
+        route.activityId!,
+        route.coordinates
+      );
+
+      if (result.success) {
+        // Mark route as uploaded
+        const updatedRoutes = routes.map((r) =>
+          r.id === route.id ? { ...r, uploadedToBackend: true } : r
+        );
+        setRoutes(updatedRoutes);
+        await AsyncStorage.setItem(
+          "recorded_routes",
+          JSON.stringify(updatedRoutes)
+        );
+
+        Alert.alert(
+          "Upload Successful! ✅",
+          `Route "${route.activityName}" has been uploaded to the backend.\n\n` +
+            `📍 ${route.pointsRecorded} points\n` +
+            `📏 ${route.totalDistance.toFixed(2)} km`,
+          [{ text: "Great!" }]
+        );
+      } else {
+        throw new Error(result.message || "Upload failed");
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      Alert.alert(
+        "Upload Failed",
+        `Could not upload route to backend:\n\n${
+          error instanceof Error ? error.message : "Unknown error"
+        }\n\nPlease check your internet connection and try again.`,
+        [{ text: "OK" }]
+      );
+    } finally {
+      setUploadingRouteId(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + " " + date.toLocaleTimeString();
@@ -153,6 +228,12 @@ export default function SavedRoutesScreen() {
             {route.activityCity}, {route.activityState}
           </Text>
           <Text style={styles.routeSource}>{route.sourceName}</Text>
+          {route.uploadedToBackend && (
+            <View style={styles.syncBadge}>
+              <IconSymbol name="checkmark.circle.fill" size={14} color="#4caf50" />
+              <Text style={styles.syncText}>Synced</Text>
+            </View>
+          )}
         </View>
         <TouchableOpacity
           style={styles.deleteButton}
@@ -185,13 +266,39 @@ export default function SavedRoutesScreen() {
 
       <Text style={styles.routeDate}>{formatDate(route.recordedAt)}</Text>
 
-      <TouchableOpacity
-        style={styles.shareButton}
-        onPress={() => shareRouteAsGeoJSON(route)}
-      >
-        <IconSymbol name="square.and.arrow.up" size={16} color="#4caf50" />
-        <Text style={styles.shareButtonText}>Export & Share</Text>
-      </TouchableOpacity>
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={[styles.uploadButton, route.uploadedToBackend && styles.uploadedButton]}
+          onPress={() => uploadRouteToBackend(route)}
+          disabled={uploadingRouteId === route.id}
+        >
+          {uploadingRouteId === route.id ? (
+            <>
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={styles.uploadButtonText}>Uploading...</Text>
+            </>
+          ) : (
+            <>
+              <IconSymbol 
+                name={route.uploadedToBackend ? "checkmark.circle" : "cloud.fill"} 
+                size={16} 
+                color="#fff" 
+              />
+              <Text style={styles.uploadButtonText}>
+                {route.uploadedToBackend ? "Re-upload" : "Upload to Backend"}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={() => shareRouteAsGeoJSON(route)}
+        >
+          <IconSymbol name="square.and.arrow.up" size={16} color="#4caf50" />
+          <Text style={styles.shareButtonText}>Export GeoJSON</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -361,6 +468,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.5,
   },
+  syncBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    gap: 4,
+  },
+  syncText: {
+    color: "#4caf50",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   deleteButton: {
     padding: 10,
     borderRadius: 8,
@@ -400,7 +518,34 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontWeight: "500",
   },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  uploadButton: {
+    flex: 1,
+    backgroundColor: "#1e3a8a",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#3b82f6",
+  },
+  uploadedButton: {
+    backgroundColor: "#1a3d1a",
+    borderColor: "#4caf50",
+  },
+  uploadButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "800",
+    marginLeft: 8,
+    letterSpacing: 0.5,
+  },
   shareButton: {
+    flex: 1,
     backgroundColor: "#1a3d1a",
     flexDirection: "row",
     alignItems: "center",

@@ -2,6 +2,7 @@ import { GPSCoordinate } from "./gps";
 
 export interface SavedRoute {
   id: string;
+  activityId?: number; // Added for backend sync
   activityName: string;
   activityCity: string;
   activityState: string;
@@ -11,6 +12,7 @@ export interface SavedRoute {
   pointsRecorded: number;
   totalDistance: number;
   recordedAt: string;
+  uploadedToBackend?: boolean; // Track sync status
   finalConfidence?: number;
   finalHeading?: number;
   relativePosition?: {

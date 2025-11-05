@@ -174,6 +174,7 @@ export default function GPSRecordingScreen() {
 
       const routeData = {
         id: Date.now().toString(),
+        activityId: selectedActivity.id,
         activityName: selectedActivity.name,
         activityCity: selectedActivity.city,
         activityState: selectedActivity.state,
@@ -183,6 +184,7 @@ export default function GPSRecordingScreen() {
         pointsRecorded: coordinates.length,
         totalDistance: calculateTotalDistance(coordinates),
         recordedAt: new Date().toISOString(),
+        uploadedToBackend: false,
       };
 
       // Get existing routes
@@ -215,6 +217,18 @@ export default function GPSRecordingScreen() {
 
         if (uploadResult.success) {
           console.log("Route uploaded to backend successfully");
+          
+          // Update the route in storage to mark as uploaded
+          const updatedRoutesJson = await AsyncStorage.getItem("recorded_routes");
+          if (updatedRoutesJson) {
+            const updatedRoutes = JSON.parse(updatedRoutesJson);
+            const routeIndex = updatedRoutes.findIndex((r: any) => r.id === routeData.id);
+            if (routeIndex !== -1) {
+              updatedRoutes[routeIndex].uploadedToBackend = true;
+              await AsyncStorage.setItem("recorded_routes", JSON.stringify(updatedRoutes));
+            }
+          }
+          
           Alert.alert(
             "Success! 🎉",
             `Route for "${selectedActivity.name}" has been saved and uploaded to the server.\n\n` +
