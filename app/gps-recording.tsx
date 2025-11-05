@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 // import MapView, { Marker, Polyline } from "react-native-maps";
 import { OfflineActivityDropdown } from "../components/OfflineActivityDropdown";
@@ -19,6 +20,7 @@ import {
   HybridGPSService,
 } from "../services/HybridGPSService";
 import { MobileGPSService } from "../services/MobileGPSService";
+import RouteService from "../services/RouteService";
 import { GPSCoordinate, GPSTrackingState } from "../types/gps";
 import { OfflineActivity } from "../types/offline-activity";
 
@@ -54,6 +56,7 @@ const calculateTotalDistance = (coordinates: GPSCoordinate[]): number => {
 export default function GPSRecordingScreen() {
   const [gpsTracker] = useState(() => GPSTrackingService.getInstance());
   const [mobileGPS] = useState(() => MobileGPSService.getInstance());
+  const [routeService] = useState(() => RouteService.getInstance());
   const [trackingState, setTrackingState] = useState<GPSTrackingState>(
     gpsTracker.getTrackingState()
   );
@@ -73,6 +76,7 @@ export default function GPSRecordingScreen() {
     gyroscope: boolean;
     magnetometer: boolean;
   }>({ accelerometer: false, gyroscope: false, magnetometer: false });
+  const [isUploadingRoute, setIsUploadingRoute] = useState(false);
   const { logout } = useAuth();
 
   useEffect(() => {
@@ -137,7 +141,7 @@ export default function GPSRecordingScreen() {
     checkSensors();
   }, []);
 
-  // Save recorded route to AsyncStorage
+  // Save recorded route to AsyncStorage and upload to backend
   const saveRecordedRoute = async () => {
     try {
       let coordinates: GPSCoordinate[];
@@ -161,6 +165,10 @@ export default function GPSRecordingScreen() {
       }
 
       if (coordinates.length === 0 || !selectedActivity) {
+        Alert.alert(
+          "No Data to Save",
+          "No GPS coordinates were recorded. Please ensure GPS is working and try again."
+        );
         return;
       }
 
@@ -195,9 +203,60 @@ export default function GPSRecordingScreen() {
         JSON.stringify(limitedRoutes)
       );
 
-      console.log("Route saved successfully:", routeData.id);
+      console.log("Route saved locally:", routeData.id);
+
+      // Upload route to backend
+      setIsUploadingRoute(true);
+      try {
+        const uploadResult = await routeService.uploadRoute(
+          selectedActivity.id,
+          coordinates
+        );
+
+        if (uploadResult.success) {
+          console.log("Route uploaded to backend successfully");
+          Alert.alert(
+            "Success! 🎉",
+            `Route for "${selectedActivity.name}" has been saved and uploaded to the server.\n\n` +
+              `📍 ${coordinates.length} points recorded\n` +
+              `📏 ${calculateTotalDistance(coordinates).toFixed(2)} km total distance\n` +
+              `✅ Synced with backend`,
+            [{ text: "Great!" }]
+          );
+        } else {
+          throw new Error(uploadResult.message || "Upload failed");
+        }
+      } catch (uploadError) {
+        console.error("Failed to upload route to backend:", uploadError);
+        // Still saved locally, so inform user
+        Alert.alert(
+          "Route Saved Locally ⚠️",
+          `Route saved on device but could not sync with server:\n\n` +
+            `${
+              uploadError instanceof Error
+                ? uploadError.message
+                : "Unknown error"
+            }\n\n` +
+            `The route is safely stored locally and you can view it in Saved Routes.`,
+          [
+            { text: "OK" },
+            {
+              text: "View Saved Routes",
+              onPress: () => router.push("/saved-routes"),
+            },
+          ]
+        );
+      } finally {
+        setIsUploadingRoute(false);
+      }
     } catch (error) {
       console.error("Failed to save route:", error);
+      Alert.alert(
+        "Save Failed",
+        `Could not save route: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   };
 
@@ -322,26 +381,13 @@ export default function GPSRecordingScreen() {
       // Stop mobile GPS tracking if active
       if (useMobileGPS) {
         await mobileGPS.stopTracking();
-        // Save the recorded route
+        // Save and upload the recorded route
         await saveRecordedRoute();
-        Alert.alert(
-          "Recording Stopped",
-          `Mobile GPS + Sensors recording stopped for "${
-            selectedActivity?.name || "Unknown Activity"
-          }".\nTotal points recorded: ${hybridCoordinates.length}`
-        );
       } else {
         // Stop Bluetooth GPS tracking
         gpsTracker.stopTracking();
-        // Save the recorded route
+        // Save and upload the recorded route
         await saveRecordedRoute();
-        const activityName = selectedActivity
-          ? selectedActivity.name
-          : "Unknown Activity";
-        Alert.alert(
-          "Recording Stopped",
-          `Bluetooth GPS + Sensors recording for "${activityName}" completed.\nTotal points recorded: ${hybridCoordinates.length}`
-        );
       }
 
       // Always stop hybrid GPS service
@@ -667,6 +713,7 @@ export default function GPSRecordingScreen() {
           <TouchableOpacity
             style={[styles.button, styles.startButton]}
             onPress={handleStartRecording}
+            disabled={isUploadingRoute}
           >
             <Text style={styles.buttonText}>
               Start Recording (
@@ -680,21 +727,29 @@ export default function GPSRecordingScreen() {
           <TouchableOpacity
             style={[styles.button, styles.stopButton]}
             onPress={handleStopRecording}
+            disabled={isUploadingRoute}
           >
-            <Text style={styles.buttonText}>
-              Stop Recording (
-              {useMobileGPS
-                ? "Mobile GPS + Sensors"
-                : "Bluetooth GPS + Sensors"}
-              )
-            </Text>
+            {isUploadingRoute ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text style={styles.buttonText}>Uploading to Server...</Text>
+              </View>
+            ) : (
+              <Text style={styles.buttonText}>
+                Stop Recording (
+                {useMobileGPS
+                  ? "Mobile GPS + Sensors"
+                  : "Bluetooth GPS + Sensors"}
+                )
+              </Text>
+            )}
           </TouchableOpacity>
         )}
 
         <TouchableOpacity
           style={[styles.button, styles.clearButton]}
           onPress={handleClearData}
-          disabled={displayCoordinates.length === 0}
+          disabled={displayCoordinates.length === 0 || isUploadingRoute}
         >
           <Text style={styles.buttonText}>Clear Data</Text>
         </TouchableOpacity>
@@ -824,148 +879,178 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 5,
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   sectionSubtitle: {
-    color: "#888",
-    fontSize: 14,
-    marginBottom: 15,
+    color: "#999",
+    fontSize: 15,
+    marginBottom: 18,
+    lineHeight: 22,
   },
   activityDropdown: {
-    marginBottom: 15,
+    marginBottom: 18,
   },
   selectedActivityInfo: {
-    backgroundColor: "#1e1e1e",
-    padding: 15,
-    borderRadius: 10,
-    borderLeftWidth: 4,
+    backgroundColor: "#1a1a1a",
+    padding: 18,
+    borderRadius: 14,
+    borderLeftWidth: 5,
     borderLeftColor: "#4caf50",
+    shadowColor: "#4caf50",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   selectedActivityTitle: {
     color: "#4caf50",
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 10,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   selectedActivityName: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 6,
+    letterSpacing: 0.3,
   },
   selectedActivityLocation: {
-    color: "#888",
-    fontSize: 14,
-    marginBottom: 3,
+    color: "#999",
+    fontSize: 15,
+    marginBottom: 5,
+    fontWeight: "500",
   },
   selectedActivityDifficulty: {
     color: "#888",
     fontSize: 14,
+    fontWeight: "600",
   },
   gpsSourceContainer: {
-    marginTop: 20,
-    paddingTop: 20,
+    marginTop: 24,
+    paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: "#333",
   },
   gpsSourceList: {
-    gap: 15,
-  },
-  gpsSourceSelector: {
-    backgroundColor: "#1e1e1e",
-    borderRadius: 12,
-    padding: 15,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    gap: 16,
   },
   gpsSourceOption: {
-    backgroundColor: "#1e1e1e",
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: "#1a1a1a",
+    borderRadius: 14,
+    padding: 18,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 2,
     borderColor: "#333",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   gpsSourceSelected: {
     borderColor: "#4caf50",
     backgroundColor: "#1a2e1a",
+    shadowColor: "#4caf50",
+    shadowOpacity: 0.3,
+    elevation: 6,
   },
   gpsSourceDisabled: {
     opacity: 0.5,
     borderColor: "#555",
   },
   gpsSourceIcon: {
-    fontSize: 24,
-    marginRight: 15,
+    fontSize: 28,
+    marginRight: 16,
   },
   gpsSourceInfo: {
     flex: 1,
   },
   gpsSourceCheck: {
     color: "#4caf50",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 10,
+    fontSize: 20,
+    fontWeight: "800",
+    marginLeft: 12,
   },
   gpsSourceExtra: {
     color: "#4caf50",
     fontSize: 12,
-    marginTop: 5,
+    marginTop: 6,
     fontFamily: "monospace",
+    fontWeight: "600",
   },
   gpsSourceLabel: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 4,
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 5,
+    letterSpacing: 0.3,
   },
   gpsSourceDescription: {
-    color: "#888",
-    fontSize: 12,
-    lineHeight: 16,
+    color: "#999",
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "500",
   },
   gpsSwitch: {
     marginHorizontal: 20,
     transform: [{ scaleX: 1.2 }, { scaleY: 1.2 }],
   },
   statsContainer: {
-    backgroundColor: "#1e1e1e",
+    backgroundColor: "#1a1a1a",
     margin: 20,
-    padding: 20,
-    borderRadius: 12,
+    padding: 22,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#333",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   statsTitle: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 18,
+    letterSpacing: 0.5,
   },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   statsLabel: {
-    color: "#888",
+    color: "#999",
     fontSize: 16,
+    fontWeight: "600",
   },
   statsValue: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 17,
+    fontWeight: "800",
+    fontFamily: "monospace",
   },
   buttonContainer: {
     padding: 20,
-    gap: 15,
+    gap: 16,
   },
   button: {
-    padding: 15,
-    borderRadius: 8,
+    padding: 18,
+    borderRadius: 14,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
   startButton: {
     backgroundColor: "#4caf50",
@@ -978,8 +1063,9 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 17,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   infoContainer: {
     backgroundColor: "#1e1e1e",
@@ -1000,68 +1086,79 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   routeVisualization: {
-    backgroundColor: "#1e1e1e",
+    backgroundColor: "#1a1a1a",
     margin: 20,
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
+    padding: 22,
+    borderRadius: 14,
+    borderWidth: 2,
     borderColor: "#4caf50",
+    shadowColor: "#4caf50",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   routeHeader: {
     alignItems: "center",
-    marginBottom: 20,
-    paddingBottom: 15,
+    marginBottom: 22,
+    paddingBottom: 18,
     borderBottomWidth: 1,
     borderBottomColor: "#333",
   },
   routeTitle: {
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 5,
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
   routeSubtitle: {
     color: "#4caf50",
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   routeStats: {
-    gap: 15,
+    gap: 16,
   },
   routeStatItem: {
-    backgroundColor: "#2a2a2a",
-    padding: 15,
-    borderRadius: 8,
-    borderLeftWidth: 3,
+    backgroundColor: "#252525",
+    padding: 18,
+    borderRadius: 12,
+    borderLeftWidth: 4,
     borderLeftColor: "#4caf50",
   },
   routeStatLabel: {
-    color: "#888",
+    color: "#999",
     fontSize: 14,
-    marginBottom: 5,
+    marginBottom: 6,
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
   routeStatValue: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "800",
     fontFamily: "monospace",
   },
   routePathContainer: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: "#2a2a2a",
-    borderRadius: 8,
+    marginTop: 22,
+    padding: 18,
+    backgroundColor: "#252525",
+    borderRadius: 12,
     alignItems: "center",
   },
   routePathTitle: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 6,
+    letterSpacing: 0.3,
   },
   routePathDescription: {
-    color: "#888",
+    color: "#999",
     fontSize: 14,
     textAlign: "center",
+    lineHeight: 20,
   },
 });

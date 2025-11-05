@@ -4,12 +4,16 @@
     "slug": "sih-admin-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+  "icon": "./assets/images/trek.jpg",
     "scheme": "sihadminapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Allow SIH Admin App to use Bluetooth to connect to ESP32 devices.",
+        "NSBluetoothPeripheralUsageDescription": "Allow SIH Admin App to use Bluetooth to connect to ESP32 devices."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +30,9 @@
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION"
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "package": "com.anonymous.sihadminapp"
     },
@@ -59,7 +65,18 @@
           }
         }
       ],
-      "react-native-ble-plx"
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": [
+            "peripheral",
+            "central"
+          ],
+          "bluetoothAlwaysUsageDescription": "Allow SIH Admin App to use Bluetooth to connect to ESP32 devices.",
+          "neverForLocation": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -68,7 +85,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "b5e5c63a-8dbb-49fd-a8d9-ff2815ec6c65"
+        "projectId": "e0c3a4f6-1491-48a9-b3e3-81cdcecb03a0"
       }
     }
   }

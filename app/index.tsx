@@ -6,6 +6,7 @@ import { Link, router } from "expo-router";
 import React, { useEffect } from "react";
 import {
   ActivityIndicator,
+  Image,
   StatusBar,
   StyleSheet,
   Text,
@@ -90,10 +91,26 @@ export default function HomePage() {
           </TouchableOpacity>
         </View>
 
+        {/* Brand row: Left = Trek logo, Right = Uttarakhand emblem */}
+        <View style={styles.brandRow}>
+          <Image
+            source={require("@/assets/images/trek.jpg")}
+            style={styles.brandLogoLeft}
+            resizeMode="contain"
+          />
+          <Image
+            source={require("@/assets/images/uttarakhand-emblem.webp")}
+            style={styles.brandLogoRight}
+            resizeMode="contain"
+          />
+        </View>
+
         {/* App Title */}
         <Text style={[styles.appTitle, { color: colors.text }]}>SURAKSHIT</Text>
-
         <Text style={[styles.subtitle, { color: colors.text }]}>Admin App</Text>
+
+        {/* Section Title */}
+        <Text style={[styles.sectionTitle, { color: colors.text + "CC" }]}>Quick actions</Text>
 
         {/* Navigation Buttons */}
         <View style={styles.buttonContainer}>
@@ -154,96 +171,125 @@ export default function HomePage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-  },
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 16, fontSize: 16 },
+
   content: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
+    justifyContent: "flex-start",
+    alignItems: "stretch",
+    paddingHorizontal: 24,
+    paddingTop: 96,
   },
+
   header: {
     position: "absolute",
     top: 20,
-    left: 32,
-    right: 32,
+    left: 24,
+    right: 24,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    zIndex: 10,
   },
-  welcomeText: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  userNameText: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  welcomeText: { fontSize: 13, opacity: 0.6, letterSpacing: 0.5 },
+  userNameText: { fontSize: 20, fontWeight: "800", marginTop: 2, letterSpacing: 0.3 },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+  },
+  logoutText: { marginLeft: 6, fontSize: 13, fontWeight: "600", letterSpacing: 0.3 },
+
+  brandRow: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 24,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderRadius: 8,
   },
-  logoutText: {
-    marginLeft: 4,
-    fontSize: 14,
+  brandLogoLeft: { 
+    width: 64, 
+    height: 64,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
   },
+  brandLogoRight: { 
+    width: 64, 
+    height: 64,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+
   appTitle: {
     fontSize: 48,
-    fontWeight: "bold",
+    fontWeight: "900",
     textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: 2,
+    letterSpacing: 3,
+    marginBottom: 4,
+    alignSelf: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.15)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     textAlign: "center",
-    marginBottom: 80,
-    opacity: 0.7,
+    marginBottom: 32,
+    opacity: 0.65,
     fontStyle: "italic",
+    letterSpacing: 1,
+    alignSelf: "center",
   },
-  buttonContainer: {
-    width: "100%",
-    gap: 24,
-  },
-  button: {
-    padding: 24,
-    borderRadius: 16,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  buttonIcon: {
-    marginBottom: 8,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  buttonSubtext: {
-    color: "white",
-    fontSize: 14,
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 16,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
     opacity: 0.8,
+  },
+
+  buttonContainer: { width: "100%", gap: 16 },
+  button: {
+    padding: 20,
+    borderRadius: 20,
+    alignItems: "flex-start",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  buttonIcon: { marginBottom: 12, opacity: 0.95 },
+  buttonText: { 
+    color: "white", 
+    fontSize: 22, 
+    fontWeight: "800", 
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  buttonSubtext: { 
+    color: "white", 
+    fontSize: 14, 
+    opacity: 0.75,
+    lineHeight: 20,
   },
 });

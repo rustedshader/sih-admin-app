@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -63,6 +64,15 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
+            {/* Uttarakhand Emblem */}
+            <View style={styles.emblemContainer}>
+              <Image
+                source={require("../../assets/images/uttarakhand-emblem.webp")}
+                style={styles.emblem}
+                resizeMode="contain"
+              />
+            </View>
+
             {/* App Title */}
             <Text style={[styles.appTitle, { color: colors.text }]}>
               SURAKSHIT
@@ -170,73 +180,102 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 40,
   },
+  emblemContainer: {
+    alignItems: "center",
+    marginBottom: 28,
+  },
+  emblem: {
+    width: 96,
+    height: 96,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   appTitle: {
-    fontSize: 42,
-    fontWeight: "bold",
+    fontSize: 48,
+    fontWeight: "900",
     textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: 2,
+    marginBottom: 6,
+    letterSpacing: 3,
+    textShadowColor: "rgba(0, 0, 0, 0.15)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 17,
     textAlign: "center",
-    marginBottom: 60,
-    opacity: 0.7,
+    marginBottom: 64,
+    opacity: 0.65,
     fontStyle: "italic",
+    letterSpacing: 1,
   },
   form: {
     width: "100%",
-    marginBottom: 40,
+    marginBottom: 48,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 10,
+    letterSpacing: 0.3,
   },
   input: {
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    height: 56,
+    borderWidth: 2,
+    borderRadius: 14,
+    paddingHorizontal: 18,
     fontSize: 16,
+    fontWeight: "500",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   loginButton: {
-    height: 50,
-    borderRadius: 12,
+    height: 56,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 24,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
   disabledButton: {
-    opacity: 0.7,
+    opacity: 0.65,
   },
   loginButtonText: {
     color: "white",
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "800",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   infoContainer: {
     alignItems: "center",
+    marginTop: 8,
   },
   infoText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 0.3,
   },
   infoSubtext: {
-    fontSize: 12,
+    fontSize: 13,
     textAlign: "center",
+    lineHeight: 20,
   },
 });

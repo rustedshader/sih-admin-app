@@ -64,28 +64,36 @@ export default function BluetoothScanner() {
 
   useEffect(() => {
     // Initialize BLE Manager and handle permissions
-    manager = new BleManager();
-    const subscription = manager.onStateChange((state) => {
-      setBleState(state);
-      if (state === State.PoweredOn && Platform.OS === "android") {
-        requestBluetoothPermissions();
-      }
-    }, true);
+    try {
+      manager = new BleManager();
+      const subscription = manager.onStateChange((state) => {
+        setBleState(state);
+        if (state === State.PoweredOn && Platform.OS === "android") {
+          requestBluetoothPermissions();
+        }
+      }, true);
 
-    // Subscribe to GPS tracking state
-    const gpsUnsubscribe = gpsTracker.subscribe((state) => {
-      setIsRecording(state.isRecording);
-      setRecordedPoints(state.totalPoints);
-    });
+      // Subscribe to GPS tracking state
+      const gpsUnsubscribe = gpsTracker.subscribe((state) => {
+        setIsRecording(state.isRecording);
+        setRecordedPoints(state.totalPoints);
+      });
 
-    return () => {
-      subscription.remove();
-      gpsUnsubscribe();
-      if (manager) {
-        manager.destroy();
-        manager = null;
-      }
-    };
+      return () => {
+        subscription.remove();
+        gpsUnsubscribe();
+        if (manager) {
+          manager.destroy();
+          manager = null;
+        }
+      };
+    } catch (error) {
+      console.error("BLE Manager initialization error:", error);
+      setError(
+        "Bluetooth initialization failed. Please rebuild the app with: npx expo run:android"
+      );
+      return () => {}; // Return empty cleanup function
+    }
   }, [gpsTracker]);
 
   const requestBluetoothPermissions = async () => {
@@ -402,68 +410,105 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
+    paddingTop: 110,
   },
-  deviceContainer: { padding: 10, borderBottomWidth: 1, borderColor: "#444" },
-  deviceText: { color: "#fff", marginBottom: 5 },
+  deviceContainer: { 
+    padding: 16, 
+    borderBottomWidth: 1, 
+    borderColor: "#333",
+    backgroundColor: "#1a1a1a",
+    marginBottom: 8,
+    borderRadius: 12,
+  },
+  deviceText: { 
+    color: "#fff", 
+    marginBottom: 6,
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
   dataText: {
     color: "#4caf50",
-    marginTop: 10,
-    fontSize: 16,
-    fontWeight: "bold",
+    marginTop: 12,
+    fontSize: 17,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
-  errorText: { color: "#ff6347", marginVertical: 10 },
+  errorText: { 
+    color: "#ff6347", 
+    marginVertical: 12,
+    fontSize: 15,
+    fontWeight: "600",
+  },
   gpsContainer: {
-    backgroundColor: "#1e1e1e",
-    padding: 20,
-    borderRadius: 12,
-    marginVertical: 15,
+    backgroundColor: "#1a1a1a",
+    padding: 24,
+    borderRadius: 16,
+    marginVertical: 16,
     borderWidth: 2,
     borderColor: "#4caf50",
+    shadowColor: "#4caf50",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   gpsTitle: {
     color: "#4caf50",
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "800",
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: 18,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   gpsCoordinate: {
     color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 26,
+    fontWeight: "800",
     textAlign: "center",
-    marginVertical: 5,
+    marginVertical: 6,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    letterSpacing: 0.5,
   },
   gpsTimestamp: {
-    color: "#888",
+    color: "#999",
     fontSize: 14,
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 12,
+    fontWeight: "500",
   },
   gpsAccuracy: {
     color: "#888",
-    fontSize: 12,
+    fontSize: 13,
     textAlign: "center",
-    marginTop: 5,
+    marginTop: 6,
+    fontWeight: "600",
   },
   recordingButton: {
     backgroundColor: "#2196f3",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
+    padding: 18,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: "#2196f3",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
   recordingButtonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 17,
+    fontWeight: "800",
     textAlign: "center",
+    letterSpacing: 0.5,
   },
   recordingStatus: {
     color: "#ff6347",
-    fontSize: 14,
+    fontSize: 15,
     textAlign: "center",
-    marginTop: 10,
-    fontWeight: "bold",
+    marginTop: 12,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });
